@@ -1,11 +1,50 @@
-import React, { Suspense, useState, useCallback } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
+import React, { Suspense, useState, useCallback, Component, ErrorInfo, ReactNode } from 'react'
 import { HeroToolsAnimation, ResponsiveHeroToolsAnimation, ConstructionShowcase } from './hero-animation/components/HeroToolsAnimation'
 import { COLORS, CONSTRUCTION_MESSAGING } from './hero-animation/utils/constants'
 
 interface AppProps {
   mode?: 'demo' | 'showcase' | 'interactive' | 'minimal'
   category?: 'electrical' | 'plumbing' | 'carpentry' | 'painting' | 'roofing' | 'hvac' | 'landscaping' | 'cleaning' | 'handyman' | 'general'
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+  error?: Error
+}
+
+interface ErrorBoundaryProps {
+  children: ReactNode
+  FallbackComponent: React.ComponentType<{ error: Error; resetErrorBoundary: () => void }>
+  onReset: () => void
+}
+
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('BuildHive Animation Error:', error, errorInfo)
+  }
+
+  resetErrorBoundary = () => {
+    this.setState({ hasError: false, error: undefined })
+    this.props.onReset()
+  }
+
+  render() {
+    if (this.state.hasError && this.state.error) {
+      const { FallbackComponent } = this.props
+      return <FallbackComponent error={this.state.error} resetErrorBoundary={this.resetErrorBoundary} />
+    }
+
+    return this.props.children
+  }
 }
 
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -58,7 +97,9 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
             borderRadius: '4px',
             fontSize: '12px',
             marginTop: '10px',
-            overflow: 'auto'
+            overflow: 'auto',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word'
           }}>
             {error.message}
           </pre>
@@ -77,10 +118,10 @@ function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetError
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
-          onMouseOver={(e) => {
+          onMouseEnter={(e) => {
             e.currentTarget.style.background = '#E6650E'
           }}
-          onMouseOut={(e) => {
+          onMouseLeave={(e) => {
             e.currentTarget.style.background = COLORS.CONSTRUCTION_ORANGE
           }}
         >
@@ -143,11 +184,18 @@ function LoadingScreen() {
           maxWidth: '400px',
           lineHeight: '1.4'
         }}>
-          {CONSTRUCTION_MESSAGING.TAGLINES[0]}
+          {CONSTRUCTION_MESSAGING?.TAGLINES?.[0] || 'Professional Construction Tools Animation'}
         </div>
       </div>
     </div>
   )
+}
+
+interface NavigationHeaderProps {
+  currentMode: string
+  onModeChange: (mode: string) => void
+  currentCategory: string
+  onCategoryChange: (category: string) => void
 }
 
 function NavigationHeader({ 
@@ -155,18 +203,13 @@ function NavigationHeader({
   onModeChange, 
   currentCategory, 
   onCategoryChange 
-}: {
-  currentMode: string
-  onModeChange: (mode: string) => void
-  currentCategory: string
-  onCategoryChange: (category: string) => void
-}) {
+}: NavigationHeaderProps) {
   const modes = [
     { key: 'showcase', label: 'Showcase' },
     { key: 'interactive', label: 'Interactive' },
     { key: 'demo', label: 'Demo' },
     { key: 'minimal', label: 'Minimal' }
-  ]
+  ] as const
 
   const categories = [
     { key: 'general', label: 'General', icon: '🔧' },
@@ -179,7 +222,7 @@ function NavigationHeader({
     { key: 'landscaping', label: 'Landscaping', icon: '🌿' },
     { key: 'cleaning', label: 'Cleaning', icon: '🧽' },
     { key: 'handyman', label: 'Handyman', icon: '🛠️' }
-  ]
+  ] as const
 
   return (
     <header style={{
@@ -260,7 +303,7 @@ function NavigationHeader({
   )
 }
 
-function App({ mode = 'showcase', category = 'general' }: AppProps) {
+function App({ mode = 'showcase', category = 'general' }: AppProps = {}) {
   const [currentMode, setCurrentMode] = useState(mode)
   const [currentCategory, setCurrentCategory] = useState(category)
   const [selectedTool, setSelectedTool] = useState<string | null>(null)
@@ -278,53 +321,69 @@ function App({ mode = 'showcase', category = 'general' }: AppProps) {
     setCurrentCategory(newCategory)
   }, [])
 
-  const renderAnimation = () => {
-    switch (currentMode) {
-      case 'showcase':
-        return <ConstructionShowcase />
-      
-      case 'interactive':
-        return (
-          <ResponsiveHeroToolsAnimation
-            category={currentCategory as any}
-            autoPlay={true}
-            enableInteraction={true}
-            enableParticles={true}
-            enablePostProcessing={true}
-            performanceMode="auto"
-            onToolSelect={handleToolSelect}
-          />
-        )
-      
-      case 'demo':
-        return (
-          <HeroToolsAnimation
-            category={currentCategory as any}
-            autoPlay={true}
-            enableInteraction={true}
-            enableParticles={true}
-            enablePostProcessing={true}
-            performanceMode="high"
-            onToolSelect={handleToolSelect}
-          />
-        )
-      
-      case 'minimal':
-        return (
-          <HeroToolsAnimation
-            category={currentCategory as any}
-            autoPlay={true}
-            enableInteraction={false}
-            enableParticles={false}
-            enablePostProcessing={false}
-            performanceMode="low"
-          />
-        )
-      
-      default:
-        return <ConstructionShowcase />
+  const renderAnimation = useCallback(() => {
+    try {
+      switch (currentMode) {
+        case 'showcase':
+          return <ConstructionShowcase />
+        
+        case 'interactive':
+          return (
+            <ResponsiveHeroToolsAnimation
+              category={currentCategory as any}
+              autoPlay={true}
+              enableInteraction={true}
+              enableParticles={true}
+              enablePostProcessing={true}
+              performanceMode="auto"
+              onToolSelect={handleToolSelect}
+            />
+          )
+        
+        case 'demo':
+          return (
+            <HeroToolsAnimation
+              category={currentCategory as any}
+              autoPlay={true}
+              enableInteraction={true}
+              enableParticles={true}
+              enablePostProcessing={true}
+              performanceMode="high"
+              onToolSelect={handleToolSelect}
+            />
+          )
+        
+        case 'minimal':
+          return (
+            <HeroToolsAnimation
+              category={currentCategory as any}
+              autoPlay={true}
+              enableInteraction={false}
+              enableParticles={false}
+              enablePostProcessing={false}
+              performanceMode="low"
+            />
+          )
+        
+        default:
+          return <ConstructionShowcase />
+      }
+    } catch (error) {
+      console.error('Error rendering animation:', error)
+      return (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          color: COLORS.CONSTRUCTION_ORANGE,
+          fontSize: '18px'
+        }}>
+          BuildHive Construction Tools - Loading...
+        </div>
+      )
     }
-  }
+  }, [currentMode, currentCategory, handleToolSelect])
 
   return (
     <ErrorBoundary
