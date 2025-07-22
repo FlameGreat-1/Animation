@@ -62,7 +62,7 @@ npm install
 npm run dev
 ```
 
-## 🎯 Usage
+## 🎯 Usage 
 
 ```tsx
 import { HeroToolsAnimation } from './hero-animation/components/HeroToolsAnimation'
@@ -81,6 +81,23 @@ function App() {
   )
 }
 ```
+
+## 🎯 INTEGRATION EXAMPLE
+
+// Your website layout
+<div className="website">
+  <header>Navigation</header>
+  
+  {/* HERO SECTION - Animation goes here */}
+  <section className="hero" style={{ height: '60vh' }}>
+    <HeroToolsAnimation />  {/* Fits this section only */}
+  </section>
+  
+  <section className="about">About content</section>
+  <section className="services">Services content</section>
+  <footer>Footer</footer>
+</div>
+ 
 
 ## 🏗️ Construction Categories
 
