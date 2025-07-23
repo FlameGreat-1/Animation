@@ -10,7 +10,6 @@ import { LightingSystem } from './effects/LightingSystem'
 import { PostProcessing } from './effects/PostProcessing'
 import { CameraController } from './controls/CameraController'
 import { GestureController } from './controls/GestureController'
-import { useAnimation } from '../hooks/useAnimation'
 import { usePerformance } from '../hooks/usePerformance'
 
 interface HeroToolsAnimationProps {
@@ -23,24 +22,6 @@ interface HeroToolsAnimationProps {
   enablePostProcessing?: boolean
   performanceMode?: 'auto' | 'low' | 'medium' | 'high' | 'ultra'
   onToolSelect?: (toolType: string) => void
-}
-
-function LoadingFallback() {
-  return (
-    <div style={{
-      width: '100%',
-      height: '100%',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: `linear-gradient(135deg, ${COLORS.INDUSTRIAL_BLUE}, ${COLORS.STEEL_GRAY})`,
-      color: COLORS.CONSTRUCTION_ORANGE,
-      fontSize: '18px',
-      fontWeight: 'bold'
-    }}>
-      Loading Professional Tools...
-    </div>
-  )
 }
 
 function ToolsScene({ 
