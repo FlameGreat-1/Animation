@@ -2,8 +2,7 @@ import { useRef, useCallback, useMemo, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { useDrag, useWheel, usePinch, useGesture } from '@use-gesture/react'
 import { Vector2, Vector3, Euler, MathUtils } from 'three'
-import { GESTURE_CONFIG } from '@/utils/constants'
-
+import { GESTURE_CONFIG } from '../utils/constants'
 interface GestureConfig {
   enabled?: boolean
   pinchToZoom?: boolean

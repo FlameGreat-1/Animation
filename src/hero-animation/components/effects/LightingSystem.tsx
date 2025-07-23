@@ -13,10 +13,10 @@ import {
   VSMShadowMap,
   PMREMGenerator
 } from 'three'
-import { LIGHTING_CONFIG, COLORS } from '@/utils/constants'
-import { createHDREnvironmentTexture } from '@/utils/textureGenerators'
-import { useAnimation } from '@/hooks/useAnimation'
-import { usePerformance } from '@/hooks/usePerformance'
+import { LIGHTING_CONFIG, COLORS } from '../../utils/constants'
+import { createHDREnvironmentTexture } from '../../utils/textureGenerators'
+import { useAnimation } from '../../hooks/useAnimation'
+import { usePerformance } from '../../hooks/usePerformance'
 
 interface LightingSystemProps {
   enabled?: boolean

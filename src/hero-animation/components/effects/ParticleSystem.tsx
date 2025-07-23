@@ -10,10 +10,10 @@ import {
   Color,
   Texture
 } from 'three'
-import { PARTICLE_CONFIG, COLORS, TIMING } from '@/utils/constants'
-import { createParticleTexture, createSparkTexture } from '@/utils/textureGenerators'
-import { useAnimation } from '@/hooks/useAnimation'
-import { usePerformance } from '@/hooks/usePerformance'
+import { PARTICLE_CONFIG, COLORS, TIMING } from '../../utils/constants'
+import { createParticleTexture, createSparkTexture } from '../../utils/textureGenerators'
+import { useAnimation } from '../../hooks/useAnimation'
+import { usePerformance } from '../../hooks/usePerformance'
 
 interface ParticleSystemProps {
   type?: 'dust' | 'sparks' | 'debris'

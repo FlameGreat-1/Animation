@@ -1,17 +1,17 @@
 import React, { useRef, useMemo, useCallback } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { PerspectiveCamera, Vector3, Euler, MathUtils } from 'three'
-import { SCENE_CONFIG, TIMING } from '@/utils/constants'
+import { SCENE_CONFIG, TIMING } from '../../utils/constants'
 import { 
   calculateFloatingPosition, 
   interpolateVector3, 
   interpolateEuler,
   easeInOutSine,
   smoothStep
-} from '@/utils/animations'
-import { useAnimation } from '@/hooks/useAnimation'
-import { useGestures } from '@/hooks/useGestures'
-import { usePerformance } from '@/hooks/usePerformance'
+} from '../../utils/animations'
+import { useAnimation } from '../../hooks/useAnimation'
+import { useGestures } from '../../hooks/useGestures'
+import { usePerformance } from '../../hooks/usePerformance'
 
 interface CameraControllerProps {
   enabled?: boolean

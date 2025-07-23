@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react'
 import { MeshStandardMaterial, MeshPhysicalMaterial, Color } from 'three'
-import { MATERIAL_CONFIG, COLORS } from '@/utils/constants'
+import { MATERIAL_CONFIG, COLORS } from '../../utils/constants'
 import {
   createMetalAlbedoTexture,
   createMetalNormalTexture,
@@ -11,7 +11,7 @@ import {
   createPlasticNormalTexture,
   createRubberAlbedoTexture,
   createRubberNormalTexture
-} from '@/utils/textureGenerators'
+} from '../../utils/textureGenerators'
 
 interface MaterialProps {
   type: 'metal' | 'wood' | 'plastic' | 'rubber'

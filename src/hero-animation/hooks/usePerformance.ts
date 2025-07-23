@@ -1,7 +1,6 @@
 import { useRef, useCallback, useMemo, useEffect } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { PERFORMANCE_CONFIG } from '@/utils/constants'
-
+import { PERFORMANCE_CONFIG } from '../utils/constants'
 interface PerformanceMetrics {
   fps: number
   frameTime: number

@@ -1,11 +1,10 @@
-  
 import React, { useRef, useMemo, useCallback } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Vector2, Vector3, Raycaster, Object3D } from 'three'
-import { useGestures, useMultiTouchGestures } from '@/hooks/useGestures'
-import { useAnimation } from '@/hooks/useAnimation'
-import { usePerformance } from '@/hooks/usePerformance'
-import { GESTURE_CONFIG } from '@/utils/constants'
+import { useGestures, useMultiTouchGestures } from '../../hooks/useGestures'
+import { useAnimation } from '../../hooks/useAnimation'
+import { usePerformance } from '../../hooks/usePerformance'
+import { GESTURE_CONFIG } from '../../utils/constants'
 
 interface GestureControllerProps {
   enabled?: boolean

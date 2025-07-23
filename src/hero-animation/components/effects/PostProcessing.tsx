@@ -21,9 +21,9 @@ import {
   ToneMappingMode
 } from 'postprocessing'
 import { Vector2 } from 'three'
-import { POST_PROCESSING_CONFIG, COLORS } from '@/utils/constants'
-import { useAnimation } from '@/hooks/useAnimation'
-import { usePerformance } from '@/hooks/usePerformance'
+import { POST_PROCESSING_CONFIG, COLORS } from '../../utils/constants'
+import { useAnimation } from '../../hooks/useAnimation'
+import { usePerformance } from '../../hooks/usePerformance'
 
 interface PostProcessingProps {
   enabled?: boolean

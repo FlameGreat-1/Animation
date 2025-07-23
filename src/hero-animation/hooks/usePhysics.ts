@@ -1,8 +1,7 @@
 import { useRef, useCallback, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Vector3, Euler } from 'three'
-import { PHYSICS_CONFIG } from '@/utils/constants'
-
+import { PHYSICS_CONFIG } from '../utils/constants'
 interface PhysicsConfig {
   mass?: number
   damping?: number

@@ -1,7 +1,7 @@
 import { useRef, useCallback, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Vector3, Euler, MathUtils } from 'three'
-import { TIMING } from '@/utils/constants'
+import { TIMING } from '../utils/constants'
 import { 
   easeInOutSine, 
   easeOutCubic, 
@@ -9,7 +9,7 @@ import {
   spring,
   createAnimationLoop,
   createTimeline
-} from '@/utils/animations'
+} from '../utils/animations'
 
 interface AnimationConfig {
   duration?: number
