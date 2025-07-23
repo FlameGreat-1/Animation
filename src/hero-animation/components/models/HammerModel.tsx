@@ -2,15 +2,15 @@ import React, { useRef, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Mesh, Group, Vector3, Euler } from 'three'
 import { PBRMaterial } from '../materials/PBRMaterials'
-import { createHammerGeometry } from '@/utils/geometryHelpers'
+import { createHammerGeometry } from '../../utils/geometryHelpers'
 import { 
   calculateFloatingPosition, 
   calculateRotation, 
   calculatePhysicsMotion 
-} from '@/utils/animations'
-import { SCENE_CONFIG, PHYSICS_CONFIG, TIMING } from '@/utils/constants'
-import { useAnimation } from '@/hooks/useAnimation'
-import { usePhysics } from '@/hooks/usePhysics'
+} from '../../utils/animations'
+import { SCENE_CONFIG, PHYSICS_CONFIG, TIMING } from '../../utils/constants'
+import { useAnimation } from '../../hooks/useAnimation'
+import { usePhysics } from '../../hooks/usePhysics'
 
 interface HammerModelProps {
   position?: Vector3
