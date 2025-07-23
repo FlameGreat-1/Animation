@@ -1,19 +1,17 @@
 import React, { Suspense, useMemo } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Vector3 } from 'three'
-import { SCENE_CONFIG, COLORS, VIEWPORT, CONSTRUCTION_MESSAGING } from '@/utils/constants'
+import { SCENE_CONFIG, COLORS, VIEWPORT, CONSTRUCTION_MESSAGING } from '../utils/constants'
 import { HammerModel } from './models/HammerModel'
 import { DrillModel } from './models/DrillModel'
 import { LevelModel } from './models/LevelModel'
 import { MeasuringTapeModel } from './models/MeasuringTapeModel'
-import { ParticleSystem, ConstructionDustSystem, DrillSparksSystem } from './effects/ParticleSystem'
+import { ConstructionDustSystem, DrillSparksSystem } from './effects/ParticleSystem'
 import { LightingSystem } from './effects/LightingSystem'
 import { PostProcessing } from './effects/PostProcessing'
 import { CameraController } from './controls/CameraController'
 import { GestureController } from './controls/GestureController'
-import { useAnimation } from '@/hooks/useAnimation'
-import { usePerformance } from '@/hooks/usePerformance'
-import { useGestures } from '@/hooks/useGestures'
+import { useAnimation } from '../hooks/useAnimation'
+import { usePerformance } from '../hooks/usePerformance'
 
 interface HeroToolsAnimationProps {
   width?: number
@@ -46,7 +44,6 @@ function LoadingFallback() {
 }
 
 function ToolsScene({ 
-  category, 
   enableParticles, 
   onToolSelect 
 }: { 
@@ -55,7 +52,6 @@ function ToolsScene({
   onToolSelect?: (toolType: string) => void
 }) {
   const { quality } = usePerformance()
-  const { animationTime } = useAnimation()
 
   const toolPositions = useMemo(() => [
     SCENE_CONFIG.TOOL_POSITIONS.HAMMER,
@@ -64,7 +60,7 @@ function ToolsScene({
     SCENE_CONFIG.TOOL_POSITIONS.MEASURING_TAPE
   ], [])
 
-  const handleToolSelection = (toolType: string, toolObject: any) => {
+  const handleToolSelection = (toolType: string) => {
     if (onToolSelect) {
       onToolSelect(toolType)
     }
@@ -85,6 +81,7 @@ function ToolsScene({
         scale={SCENE_CONFIG.TOOL_SCALES.HAMMER}
         staggerIndex={0}
         performanceLevel={quality}
+        onSelect={() => handleToolSelection('hammer')}
       />
 
       <DrillModel
@@ -92,6 +89,7 @@ function ToolsScene({
         scale={SCENE_CONFIG.TOOL_SCALES.DRILL}
         staggerIndex={1}
         performanceLevel={quality}
+        onSelect={() => handleToolSelection('drill')}
       />
 
       <LevelModel
@@ -99,6 +97,7 @@ function ToolsScene({
         scale={SCENE_CONFIG.TOOL_SCALES.LEVEL}
         staggerIndex={2}
         performanceLevel={quality}
+        onSelect={() => handleToolSelection('level')}
       />
 
       <MeasuringTapeModel
@@ -106,6 +105,7 @@ function ToolsScene({
         scale={SCENE_CONFIG.TOOL_SCALES.MEASURING_TAPE}
         staggerIndex={3}
         performanceLevel={quality}
+        onSelect={() => handleToolSelection('measuring-tape')}
       />
 
       {enableParticles && (
