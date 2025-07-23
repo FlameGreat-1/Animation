@@ -1,20 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import glsl from 'vite-plugin-glsl'
-import eslint from 'vite-plugin-eslint'
 import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [
-    react({
-      jsxImportSource: '@emotion/react',
-      babel: {
-        plugins: [
-          ['@babel/plugin-proposal-decorators', { legacy: true }],
-          ['@babel/plugin-proposal-class-properties', { loose: true }]
-        ]
-      }
-    }),
+    react(),
     glsl({
       include: [
         '**/*.glsl',
@@ -30,11 +21,6 @@ export default defineConfig({
       compress: false,
       watch: true,
       root: '/'
-    }),
-    eslint({
-      cache: false,
-      include: ['./src/**/*.js', './src/**/*.jsx', './src/**/*.ts', './src/**/*.tsx'],
-      exclude: []
     })
   ],
   resolve: {
@@ -111,16 +97,10 @@ export default defineConfig({
     target: 'es2020'
   },
   css: {
-    devSourcemap: true,
-    preprocessorOptions: {
-      scss: {
-        additionalData: `@import "@/styles/variables.scss";`
-      }
-    }
+    devSourcemap: true
   },
   json: {
     namedExports: true,
     stringify: false
   }
 })
-
