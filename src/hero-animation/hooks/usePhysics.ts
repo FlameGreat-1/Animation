@@ -1,7 +1,7 @@
-import { useRef, useCallback, useMemo } from 'react'
-import { useFrame } from '@react-three/fiber'
+import { useRef, useCallback, useMemo, useEffect } from 'react'
 import { Vector3, Euler } from 'three'
 import { PHYSICS_CONFIG } from '../utils/constants'
+
 interface PhysicsConfig {
   mass?: number
   damping?: number
@@ -49,6 +49,7 @@ export function usePhysics(config: PhysicsConfig = {}) {
 
   const previousTime = useRef<number>(0)
   const isInitialized = useRef<boolean>(false)
+  const frameId = useRef<number>(0)
 
   const addForce = useCallback((force: Vector3) => {
     if (!enabled) return
@@ -146,6 +147,30 @@ export function usePhysics(config: PhysicsConfig = {}) {
     
     previousTime.current = performance.now()
   }, [enabled, applyGravity, applyBuoyancy, integrateMotion])
+
+  useEffect(() => {
+    try {
+      const { useFrame } = require('@react-three/fiber')
+      useFrame((state, deltaTime) => {
+        updatePhysics(deltaTime)
+      })
+    } catch {
+      let lastTime = performance.now()
+      const animate = (currentTime: number) => {
+        const deltaTime = (currentTime - lastTime) / 1000
+        lastTime = currentTime
+        updatePhysics(deltaTime)
+        frameId.current = requestAnimationFrame(animate)
+      }
+      frameId.current = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
+      }
+    }
+  }, [updatePhysics])
 
   const resetPhysics = useCallback(() => {
     const state = physicsState.current

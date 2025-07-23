@@ -1,5 +1,4 @@
 import { useRef, useCallback, useMemo, useEffect } from 'react'
-import { useFrame } from '@react-three/fiber'
 import { Vector3, Euler, MathUtils } from 'three'
 import { TIMING } from '../utils/constants'
 import { 
@@ -64,52 +63,9 @@ export function useAnimation(config: AnimationConfig = {}) {
   const previousTime = useRef<number>(0)
   const delayTimer = useRef<number>(0)
   const hasStarted = useRef<boolean>(false)
+  const frameId = useRef<number>(0)
 
-  const play = useCallback(() => {
-    animationState.current.isPlaying = true
-    animationState.current.isPaused = false
-    
-    if (!hasStarted.current && onStart) {
-      onStart()
-      hasStarted.current = true
-    }
-  }, [onStart])
-
-  const pause = useCallback(() => {
-    animationState.current.isPaused = true
-    animationState.current.isPlaying = false
-  }, [])
-
-  const stop = useCallback(() => {
-    animationState.current.isPlaying = false
-    animationState.current.isPaused = false
-    animationState.current.isComplete = false
-    animationState.current.currentTime = 0
-    animationState.current.progress = 0
-    animationState.current.loopCount = 0
-    animationTime.current = 0
-    delayTimer.current = 0
-    hasStarted.current = false
-  }, [])
-
-  const restart = useCallback(() => {
-    stop()
-    play()
-  }, [stop, play])
-
-  const seek = useCallback((progress: number) => {
-    const clampedProgress = MathUtils.clamp(progress, 0, 1)
-    animationState.current.progress = clampedProgress
-    animationState.current.currentTime = clampedProgress * duration
-    animationTime.current = animationState.current.currentTime
-  }, [duration])
-
-  const reverse = useCallback(() => {
-    animationState.current.direction = 
-      animationState.current.direction === 'forward' ? 'reverse' : 'forward'
-  }, [])
-
-  useFrame((state, deltaTime) => {
+  const updateAnimation = useCallback((deltaTime: number) => {
     const currentState = animationState.current
     
     if (!currentState.isPlaying || currentState.isPaused) return
@@ -166,7 +122,79 @@ export function useAnimation(config: AnimationConfig = {}) {
     if (onUpdate) {
       onUpdate(easedProgress)
     }
-  })
+  }, [duration, delay, loop, direction, easing, onStart, onUpdate, onComplete, onLoop])
+
+  useEffect(() => {
+    try {
+      const { useFrame } = require('@react-three/fiber')
+      useFrame((state, deltaTime) => {
+        updateAnimation(deltaTime)
+      })
+    } catch {
+      let lastTime = performance.now()
+      const animate = (currentTime: number) => {
+        const deltaTime = (currentTime - lastTime) / 1000
+        lastTime = currentTime
+        updateAnimation(deltaTime)
+        if (animationState.current.isPlaying && !animationState.current.isComplete) {
+          frameId.current = requestAnimationFrame(animate)
+        }
+      }
+      if (animationState.current.isPlaying) {
+        frameId.current = requestAnimationFrame(animate)
+      }
+    }
+
+    return () => {
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
+      }
+    }
+  }, [updateAnimation])
+
+  const play = useCallback(() => {
+    animationState.current.isPlaying = true
+    animationState.current.isPaused = false
+    
+    if (!hasStarted.current && onStart) {
+      onStart()
+      hasStarted.current = true
+    }
+  }, [onStart])
+
+  const pause = useCallback(() => {
+    animationState.current.isPaused = true
+    animationState.current.isPlaying = false
+  }, [])
+
+  const stop = useCallback(() => {
+    animationState.current.isPlaying = false
+    animationState.current.isPaused = false
+    animationState.current.isComplete = false
+    animationState.current.currentTime = 0
+    animationState.current.progress = 0
+    animationState.current.loopCount = 0
+    animationTime.current = 0
+    delayTimer.current = 0
+    hasStarted.current = false
+  }, [])
+
+  const restart = useCallback(() => {
+    stop()
+    play()
+  }, [stop, play])
+
+  const seek = useCallback((progress: number) => {
+    const clampedProgress = MathUtils.clamp(progress, 0, 1)
+    animationState.current.progress = clampedProgress
+    animationState.current.currentTime = clampedProgress * duration
+    animationTime.current = animationState.current.currentTime
+  }, [duration])
+
+  const reverse = useCallback(() => {
+    animationState.current.direction = 
+      animationState.current.direction === 'forward' ? 'reverse' : 'forward'
+  }, [])
 
   const animationData = useMemo(() => ({
     isPlaying: animationState.current.isPlaying,
@@ -205,11 +233,11 @@ export function useFloatingAnimation(
     easing: easeInOutSine
   })
 
-  useFrame(() => {
+  useEffect(() => {
     const offset = Math.sin(progress * Math.PI * 2) * amplitude * 0.01
     position.current.copy(basePosition)
     position.current.y += offset
-  })
+  }, [progress, basePosition, amplitude])
 
   return {
     position: position.current,
@@ -231,7 +259,7 @@ export function useRotationAnimation(
     easing: linear
   })
 
-  useFrame(() => {
+  useEffect(() => {
     const angle = progress * Math.PI * 2
     rotation.current.copy(baseRotation)
     
@@ -246,7 +274,7 @@ export function useRotationAnimation(
         rotation.current.z += angle
         break
     }
-  })
+  }, [progress, baseRotation, axis])
 
   return {
     rotation: rotation.current,
@@ -350,8 +378,9 @@ export function useSpringAnimation(
   const current = useRef(typeof from === 'number' ? from : from.clone())
   const velocity = useRef(typeof from === 'number' ? 0 : new Vector3())
   const target = useRef(typeof to === 'number' ? to : to.clone())
+  const frameId = useRef<number>(0)
 
-  useFrame((state, deltaTime) => {
+  const updateSpring = useCallback((deltaTime: number) => {
     if (typeof current.current === 'number' && typeof target.current === 'number') {
       const force = (target.current - current.current) * tension
       velocity.current += force * deltaTime
@@ -363,7 +392,36 @@ export function useSpringAnimation(
       velocity.current.multiplyScalar(1 - friction * deltaTime)
       current.current.add(velocity.current.clone().multiplyScalar(deltaTime))
     }
-  })
+  }, [tension, friction])
+
+  useEffect(() => {
+    try {
+      const { useFrame } = require('@react-three/fiber')
+      useFrame((state, deltaTime) => {
+        updateSpring(deltaTime)
+      })
+    } catch {
+      let lastTime = performance.now()
+      const animate = (currentTime: number) => {
+        const deltaTime = (currentTime - lastTime) / 1000
+        lastTime = currentTime
+        updateSpring(deltaTime)
+        const isAtRest = typeof velocity.current === 'number' ? 
+          Math.abs(velocity.current) < precision :
+          velocity.current.length() < precision
+        if (!isAtRest) {
+          frameId.current = requestAnimationFrame(animate)
+        }
+      }
+      frameId.current = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
+      }
+    }
+  }, [updateSpring, precision])
 
   const setTarget = useCallback((newTarget: typeof to) => {
     if (typeof newTarget === 'number') {
@@ -385,10 +443,28 @@ export function useSpringAnimation(
 export function useAnimationTimeline() {
   const timeline = useRef(createTimeline())
   const { animationTime, ...controls } = useAnimation()
+  const frameId = useRef<number>(0)
 
-  useFrame(() => {
-    timeline.current.update(animationTime)
-  })
+  useEffect(() => {
+    try {
+      const { useFrame } = require('@react-three/fiber')
+      useFrame(() => {
+        timeline.current.update(animationTime)
+      })
+    } catch {
+      const animate = () => {
+        timeline.current.update(animationTime)
+        frameId.current = requestAnimationFrame(animate)
+      }
+      frameId.current = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
+      }
+    }
+  }, [animationTime])
 
   const addKeyframe = useCallback((time: number, callback: () => void) => {
     timeline.current.add(time, callback)

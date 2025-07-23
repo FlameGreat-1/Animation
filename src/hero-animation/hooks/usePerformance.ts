@@ -1,6 +1,6 @@
 import { useRef, useCallback, useMemo, useEffect } from 'react'
-import { useFrame, useThree } from '@react-three/fiber'
 import { PERFORMANCE_CONFIG } from '../utils/constants'
+
 interface PerformanceMetrics {
   fps: number
   frameTime: number
@@ -46,8 +46,6 @@ export function usePerformance(config: PerformanceConfig = {}) {
     enableProfiling = true
   } = config
 
-  const { gl, scene, camera } = useThree()
-  
   const performanceMetrics = useRef<PerformanceMetrics>({
     fps: 0,
     frameTime: 0,
@@ -68,6 +66,10 @@ export function usePerformance(config: PerformanceConfig = {}) {
   const currentQuality = useRef<QualityLevel['level']>('high')
   const adaptiveTimer = useRef<number>(0)
   const performanceObserver = useRef<PerformanceObserver | null>(null)
+  const frameId = useRef<number>(0)
+  const gl = useRef<any>(null)
+  const scene = useRef<any>(null)
+  const camera = useRef<any>(null)
 
   const qualityLevels: Record<QualityLevel['level'], QualityLevel> = useMemo(() => ({
     low: {
@@ -107,29 +109,39 @@ export function usePerformance(config: PerformanceConfig = {}) {
   const getMemoryUsage = useCallback((): number => {
     if ('memory' in performance) {
       const memory = (performance as any).memory
-      return memory.usedJSHeapSize / 1024 / 1024 // MB
+      return memory.usedJSHeapSize / 1024 / 1024
     }
     return 0
   }, [])
 
   const getGPUMemoryUsage = useCallback((): number => {
-    const info = gl.info
+    if (!gl.current || !gl.current.info) return 0
+    const info = gl.current.info
     if (info.memory) {
       return info.memory.geometries + info.memory.textures
     }
     return 0
-  }, [gl])
+  }, [])
 
   const getRenderInfo = useCallback(() => {
-    const info = gl.info.render
+    if (!gl.current || !gl.current.info) {
+      return {
+        drawCalls: 0,
+        triangles: 0,
+        geometries: 0,
+        textures: 0,
+        programs: 0
+      }
+    }
+    const info = gl.current.info.render
     return {
       drawCalls: info.calls,
       triangles: info.triangles,
-      geometries: gl.info.memory.geometries,
-      textures: gl.info.memory.textures,
-      programs: gl.info.programs?.length || 0
+      geometries: gl.current.info.memory.geometries,
+      textures: gl.current.info.memory.textures,
+      programs: gl.current.info.programs?.length || 0
     }
-  }, [gl])
+  }, [])
 
   const calculateAverageFPS = useCallback((): number => {
     if (fpsHistory.current.length === 0) return 0
@@ -172,14 +184,14 @@ export function usePerformance(config: PerformanceConfig = {}) {
   }, [calculateAverageFPS, calculateAverageFrameTime, getRenderInfo, getMemoryUsage, getGPUMemoryUsage])
 
   const adjustQuality = useCallback((targetLevel: QualityLevel['level']) => {
-    if (currentQuality.current === targetLevel) return
+    if (currentQuality.current === targetLevel || !gl.current || !scene.current) return
     
     const quality = qualityLevels[targetLevel]
     currentQuality.current = targetLevel
     
-    gl.setPixelRatio(quality.pixelRatio)
+    gl.current.setPixelRatio(quality.pixelRatio)
     
-    scene.traverse((object: any) => {
+    scene.current.traverse((object: any) => {
       if (object.material) {
         if (object.material.map) {
           object.material.map.anisotropy = quality.antialias ? 4 : 1
@@ -195,9 +207,9 @@ export function usePerformance(config: PerformanceConfig = {}) {
       }
     })
     
-    gl.shadowMap.enabled = quality.shadowMapSize > 0
-    gl.shadowMap.needsUpdate = true
-  }, [gl, scene, qualityLevels])
+    gl.current.shadowMap.enabled = quality.shadowMapSize > 0
+    gl.current.shadowMap.needsUpdate = true
+  }, [qualityLevels])
 
   const adaptiveQualityControl = useCallback((deltaTime: number) => {
     if (!adaptiveQuality) return
@@ -229,25 +241,27 @@ export function usePerformance(config: PerformanceConfig = {}) {
     }
   }, [adaptiveQuality, monitoringInterval, calculateAverageFPS, calculateAverageFrameTime, targetFPS, adjustQuality])
 
+  const updatePerformanceFrame = useCallback((deltaTime: number) => {
+    updateMetrics(deltaTime)
+    adaptiveQualityControl(deltaTime)
+  }, [updateMetrics, adaptiveQualityControl])
+
   const detectDeviceCapabilities = useCallback(() => {
-    const canvas = gl.domElement
-    const context = gl.getContext()
-    
     const capabilities = {
-      maxTextureSize: gl.capabilities.maxTextureSize,
-      maxVertexTextures: gl.capabilities.maxVertexTextures,
-      maxFragmentUniforms: gl.capabilities.maxFragmentUniforms,
-      maxVertexUniforms: gl.capabilities.maxVertexUniforms,
-      maxVaryings: gl.capabilities.maxVaryings,
-      maxSamples: gl.capabilities.maxSamples,
-      floatTextures: gl.extensions.has('OES_texture_float'),
-      halfFloatTextures: gl.extensions.has('OES_texture_half_float'),
-      anisotropicFiltering: gl.extensions.has('EXT_texture_filter_anisotropic'),
-      shaderTextureLOD: gl.extensions.has('EXT_shader_texture_lod'),
-      standardDerivatives: gl.extensions.has('OES_standard_derivatives'),
-      vertexArrayObject: gl.extensions.has('OES_vertex_array_object'),
-      instancedArrays: gl.extensions.has('ANGLE_instanced_arrays'),
-      multipleRenderTargets: gl.extensions.has('WEBGL_draw_buffers')
+      maxTextureSize: gl.current?.capabilities?.maxTextureSize || 2048,
+      maxVertexTextures: gl.current?.capabilities?.maxVertexTextures || 4,
+      maxFragmentUniforms: gl.current?.capabilities?.maxFragmentUniforms || 1024,
+      maxVertexUniforms: gl.current?.capabilities?.maxVertexUniforms || 1024,
+      maxVaryings: gl.current?.capabilities?.maxVaryings || 8,
+      maxSamples: gl.current?.capabilities?.maxSamples || 4,
+      floatTextures: gl.current?.extensions?.has('OES_texture_float') || false,
+      halfFloatTextures: gl.current?.extensions?.has('OES_texture_half_float') || false,
+      anisotropicFiltering: gl.current?.extensions?.has('EXT_texture_filter_anisotropic') || false,
+      shaderTextureLOD: gl.current?.extensions?.has('EXT_shader_texture_lod') || false,
+      standardDerivatives: gl.current?.extensions?.has('OES_standard_derivatives') || false,
+      vertexArrayObject: gl.current?.extensions?.has('OES_vertex_array_object') || false,
+      instancedArrays: gl.current?.extensions?.has('ANGLE_instanced_arrays') || false,
+      multipleRenderTargets: gl.current?.extensions?.has('WEBGL_draw_buffers') || false
     }
     
     const deviceType = /Mobi|Android/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
@@ -264,26 +278,7 @@ export function usePerformance(config: PerformanceConfig = {}) {
     }
     
     return { capabilities, deviceType, memoryInfo, recommendedQuality }
-  }, [gl])
-
-  const initializePerformanceMonitoring = useCallback(() => {
-    if (!enableProfiling || !window.PerformanceObserver) return
-    
-    try {
-      performanceObserver.current = new PerformanceObserver((list) => {
-        const entries = list.getEntries()
-        entries.forEach((entry) => {
-          if (entry.entryType === 'measure' && entry.name.includes('render')) {
-            // Handle render performance measurements
-          }
-        })
-      })
-      
-      performanceObserver.current.observe({ entryTypes: ['measure', 'navigation'] })
-    } catch (error) {
-      console.warn('Performance Observer not supported:', error)
-    }
-  }, [enableProfiling])
+  }, [])
 
   const startProfiling = useCallback((name: string) => {
     if (enableProfiling && performance.mark) {
@@ -320,21 +315,38 @@ export function usePerformance(config: PerformanceConfig = {}) {
     adjustQuality(recommendedQuality)
   }, [detectDeviceCapabilities, adjustQuality])
 
-  useFrame((state, deltaTime) => {
-    updateMetrics(deltaTime)
-    adaptiveQualityControl(deltaTime)
-  })
-
   useEffect(() => {
-    initializePerformanceMonitoring()
-    optimizeForDevice()
-    
+    try {
+      const { useFrame, useThree } = require('@react-three/fiber')
+      const { gl: glRef, scene: sceneRef, camera: cameraRef } = useThree()
+      gl.current = glRef
+      scene.current = sceneRef
+      camera.current = cameraRef
+
+      useFrame((state, deltaTime) => {
+        updatePerformanceFrame(deltaTime)
+      })
+    } catch {
+      let lastTime = performance.now()
+      const animate = (currentTime: number) => {
+        const deltaTime = (currentTime - lastTime) / 1000
+        lastTime = currentTime
+        updatePerformanceFrame(deltaTime)
+        frameId.current = requestAnimationFrame(animate)
+      }
+      frameId.current = requestAnimationFrame(animate)
+    }
+
     return () => {
-      if (performanceObserver.current) {
-        performanceObserver.current.disconnect()
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
       }
     }
-  }, [initializePerformanceMonitoring, optimizeForDevice])
+  }, [updatePerformanceFrame])
+
+  useEffect(() => {
+    optimizeForDevice()
+  }, [optimizeForDevice])
 
   const performanceData = useMemo(() => ({
     metrics: performanceMetrics.current,
@@ -362,8 +374,9 @@ export function useFrameRate() {
   const fps = useRef<number>(0)
   const frameCount = useRef<number>(0)
   const lastTime = useRef<number>(performance.now())
+  const frameId = useRef<number>(0)
 
-  useFrame(() => {
+  const updateFrameRate = useCallback(() => {
     frameCount.current++
     const currentTime = performance.now()
     
@@ -372,7 +385,28 @@ export function useFrameRate() {
       frameCount.current = 0
       lastTime.current = currentTime
     }
-  })
+  }, [])
+
+  useEffect(() => {
+    try {
+      const { useFrame } = require('@react-three/fiber')
+      useFrame(() => {
+        updateFrameRate()
+      })
+    } catch {
+      const animate = () => {
+        updateFrameRate()
+        frameId.current = requestAnimationFrame(animate)
+      }
+      frameId.current = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
+      }
+    }
+  }, [updateFrameRate])
 
   return fps.current
 }
@@ -380,8 +414,9 @@ export function useFrameRate() {
 export function useMemoryMonitor() {
   const memoryUsage = useRef<number>(0)
   const memoryHistory = useRef<number[]>([])
+  const frameId = useRef<number>(0)
 
-  useFrame(() => {
+  const updateMemory = useCallback(() => {
     if ('memory' in performance) {
       const memory = (performance as any).memory
       const usage = memory.usedJSHeapSize / 1024 / 1024
@@ -393,7 +428,28 @@ export function useMemoryMonitor() {
         memoryHistory.current.shift()
       }
     }
-  })
+  }, [])
+
+  useEffect(() => {
+    try {
+      const { useFrame } = require('@react-three/fiber')
+      useFrame(() => {
+        updateMemory()
+      })
+    } catch {
+      const animate = () => {
+        updateMemory()
+        frameId.current = requestAnimationFrame(animate)
+      }
+      frameId.current = requestAnimationFrame(animate)
+    }
+
+    return () => {
+      if (frameId.current) {
+        cancelAnimationFrame(frameId.current)
+      }
+    }
+  }, [updateMemory])
 
   const getAverageMemoryUsage = useCallback(() => {
     if (memoryHistory.current.length === 0) return 0
@@ -426,3 +482,5 @@ export function useMemoryMonitor() {
 }
 
 export default usePerformance
+
+
